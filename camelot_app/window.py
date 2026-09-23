@@ -3,7 +3,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from camelot_core.camelot import CAMELOT_KEYS, camelot_to_key
+from camelot_core.camelot import CAMELOT_KEYS, camelot_to_key, key_to_camelot
 from camelot_core.compatibility_explanations import explain_compatibility
 from camelot_app.wheel import CamelotWheel
 
@@ -14,10 +14,13 @@ class CamelotDJWindow:
     def __init__(self, root):
         self.root = root
         self.root.title("Camelot DJ — Harmonic Mixing Assistant")
-        self.root.geometry("980x700")
-        self.root.minsize(800, 600)
+        self.root.geometry("1020x760")
+        self.root.minsize(820, 650)
 
         self.selected_code = tk.StringVar(value="8A")
+        self.note_var = tk.StringVar(value="A")
+        self.mode_var = tk.StringVar(value="minor")
+        self.conversion_result = tk.StringVar(value="Resultado: 8A")
 
         self._build_interface()
         self.update_selection()
@@ -55,7 +58,7 @@ class CamelotDJWindow:
 
         ttk.Label(
             details,
-            text="Selecciona una tonalidad:",
+            text="Selecciona una tonalidad Camelot:",
         ).pack(anchor="w")
 
         self.code_selector = ttk.Combobox(
@@ -65,7 +68,7 @@ class CamelotDJWindow:
             state="readonly",
             width=10,
         )
-        self.code_selector.pack(anchor="w", pady=(6, 14))
+        self.code_selector.pack(anchor="w", pady=(6, 12))
         self.code_selector.bind(
             "<<ComboboxSelected>>",
             self._on_selection_changed,
@@ -76,7 +79,50 @@ class CamelotDJWindow:
             text="",
             font=("TkDefaultFont", 14, "bold"),
         )
-        self.key_label.pack(anchor="w", pady=(0, 16))
+        self.key_label.pack(anchor="w", pady=(0, 14))
+
+        ttk.Label(
+            details,
+            text="Convertir tonalidad musical a Camelot:",
+            font=("TkDefaultFont", 11, "bold"),
+        ).pack(anchor="w", pady=(0, 6))
+
+        conversion_frame = ttk.Frame(details)
+        conversion_frame.pack(anchor="w", fill="x", pady=(0, 6))
+
+        self.note_selector = ttk.Combobox(
+            conversion_frame,
+            textvariable=self.note_var,
+            values=[
+                "C", "C#", "Db", "D", "D#", "Eb", "E",
+                "F", "F#", "Gb", "G", "G#", "Ab", "A",
+                "A#", "Bb", "B",
+            ],
+            state="readonly",
+            width=6,
+        )
+        self.note_selector.pack(side="left", padx=(0, 6))
+
+        self.mode_selector = ttk.Combobox(
+            conversion_frame,
+            textvariable=self.mode_var,
+            values=["major", "minor"],
+            state="readonly",
+            width=8,
+        )
+        self.mode_selector.pack(side="left", padx=(0, 6))
+
+        ttk.Button(
+            conversion_frame,
+            text="Convertir",
+            command=self.convert_musical_key,
+        ).pack(side="left")
+
+        ttk.Label(
+            details,
+            textvariable=self.conversion_result,
+            font=("TkDefaultFont", 11, "bold"),
+        ).pack(anchor="w", pady=(0, 14))
 
         ttk.Label(
             details,
@@ -91,7 +137,7 @@ class CamelotDJWindow:
             results_frame,
             wrap="word",
             font=("TkDefaultFont", 10),
-            height=14,
+            height=12,
             padx=8,
             pady=8,
             spacing1=2,
@@ -121,6 +167,21 @@ class CamelotDJWindow:
         self.update_selection()
 
     def _on_selection_changed(self, _event=None):
+        self.update_selection()
+
+    def convert_musical_key(self):
+        """Convert the selected musical note and mode to Camelot."""
+        note = self.note_var.get()
+        mode = self.mode_var.get()
+
+        try:
+            code = key_to_camelot(note, mode)
+        except ValueError as error:
+            messagebox.showerror("Error de conversión", str(error))
+            return
+
+        self.selected_code.set(code)
+        self.conversion_result.set(f"Resultado: {code}")
         self.update_selection()
 
     def update_selection(self):
@@ -162,6 +223,11 @@ class CamelotDJWindow:
         self.results.configure(state="disabled")
 
         self.wheel.set_selection(code)
+
+        # Keep the conversion controls aligned with the displayed key.
+        self.note_var.set(key.name)
+        self.mode_var.set(key.mode)
+        self.conversion_result.set(f"Resultado: {code}")
 
 
 def create_window():
